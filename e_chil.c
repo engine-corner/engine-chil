@@ -366,14 +366,14 @@ static int bind_helper(ENGINE *e)
 
 #ifndef OPENSSL_NO_RSA
     /*
-     * We know that the "PKCS1_OpenSSL()" functions hook properly to the
+     * We know that the "RSA_PKCS1_SSLeay()" functions hook properly to the
      * cswift-specific mod_exp and mod_exp_crt so we use those functions. NB:
      * We don't use ENGINE_openssl() or anything "more generic" because
      * something like the RSAref code may not hook properly, and if you own
      * one of these cards then you have the right to do RSA operations on it
      * anyway!
      */
-    meth1 = RSA_PKCS1_OpenSSL();
+    meth1 = RSA_PKCS1_SSLeay();
     hwcrhk_rsa.rsa_pub_enc = meth1->rsa_pub_enc;
     hwcrhk_rsa.rsa_pub_dec = meth1->rsa_pub_dec;
     hwcrhk_rsa.rsa_priv_enc = meth1->rsa_priv_enc;
@@ -424,7 +424,7 @@ static HWCryptoHook_RSAUnloadKey_t *p_hwcrhk_RSAUnloadKey = NULL;
 static HWCryptoHook_ModExpCRT_t *p_hwcrhk_ModExpCRT = NULL;
 
 /* Used in the DSO operations. */
-static const char *HWCRHK_LIBNAME = NULL;
+static char *HWCRHK_LIBNAME = NULL;
 static void free_HWCRHK_LIBNAME(void)
 {
     OPENSSL_free(HWCRHK_LIBNAME);
