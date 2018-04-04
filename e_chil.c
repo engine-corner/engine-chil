@@ -58,10 +58,11 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <ltdl.h>
 #include <openssl/crypto.h>
 #include <openssl/pem.h>
-#include <openssl/dso.h>
 #include <openssl/engine.h>
 #include <openssl/ui.h>
 #include <openssl/rand.h>
@@ -398,7 +399,7 @@ static int bind_helper(ENGINE *e)
  * finish() call (reference counts permitting) and they're operating with
  * global locks, so this should be thread-safe implicitly.
  */
-static DSO *hwcrhk_dso = NULL;
+static lt_dlhandle hwcrhk_dso = NULL;
 static HWCryptoHook_ContextHandle hwcrhk_context = 0;
 #ifndef OPENSSL_NO_RSA
 /* Index for KM handle.  Not really used yet. */
@@ -509,19 +510,43 @@ static int hwcrhk_init(ENGINE *e)
 #endif
     HWCryptoHook_RandomBytes_t *p8;
     HWCryptoHook_ModExpCRT_t *p9;
+    const char *hwcrhk_name = get_HWCRHK_LIBNAME();
+    char *hwcrhk_libname = NULL;
 
     if (hwcrhk_dso != NULL) {
         HWCRHKerr(HWCRHK_F_HWCRHK_INIT, HWCRHK_R_ALREADY_LOADED);
         goto err;
     }
-    /* Attempt to load libnfhwcrhk.so/nfhwcrhk.dll/whatever. */
-    hwcrhk_dso = DSO_load(NULL, get_HWCRHK_LIBNAME(), NULL, 0);
-    if (hwcrhk_dso == NULL) {
-        HWCRHKerr(HWCRHK_F_HWCRHK_INIT, HWCRHK_R_DSO_FAILURE);
+
+    if (lt_dlinit() != 0) {
+        HWCRHKerr(HWCRHK_F_HWCRHK_INIT, ERR_R_SYS_LIB);
+        ERR_add_error_data(2, "ltdl message: ", lt_dlerror());
         goto err;
     }
 
-#define BINDIT(t, name) (t *)DSO_bind_func(hwcrhk_dso, name)
+    if (strncmp(hwcrhk_name, "lib", 3) != 0) {
+        /*
+	 * hwcrhk_libname is the same as hwcrhk_name, but with "lib" prefixed.
+	 * Make space for it
+	 */
+        if ((hwcrhk_libname = malloc(strlen(hwcrhk_name) + 4)) == NULL) {
+            HWCRHKerr(HWCRHK_F_HWCRHK_INIT, ERR_R_MALLOC_FAILURE);
+            goto err;
+        }
+        strcpy(hwcrhk_libname, "lib");
+        strcat(hwcrhk_libname, hwcrhk_name);
+    }
+
+    /* Attempt to load libnfhwcrhk.so/nfhwcrhk.dll/whatever. */
+    if ((hwcrhk_libname != NULL
+         && (hwcrhk_dso = lt_dlopenext(hwcrhk_libname)) == NULL)
+        || (hwcrhk_dso = lt_dlopenext(hwcrhk_name)) == NULL) {
+        HWCRHKerr(HWCRHK_F_HWCRHK_INIT, HWCRHK_R_DSO_FAILURE);
+        goto err;
+    }
+    free(hwcrhk_libname);
+
+#define BINDIT(t, name) (t *)lt_dlsym(hwcrhk_dso, name)
     if ((p1 = BINDIT(HWCryptoHook_Init_t, n_hwcrhk_Init)) == NULL
         || (p2 = BINDIT(HWCryptoHook_Finish_t, n_hwcrhk_Finish)) == NULL
         || (p3 = BINDIT(HWCryptoHook_ModExp_t, n_hwcrhk_ModExp)) == NULL
@@ -580,7 +605,10 @@ static int hwcrhk_init(ENGINE *e)
 #endif
     return 1;
  err:
-    DSO_free(hwcrhk_dso);
+    free(hwcrhk_libname);
+    if (hwcrhk_dso != NULL)
+        lt_dlclose(hwcrhk_dso);
+    lt_dlexit();
     hwcrhk_dso = NULL;
     p_hwcrhk_Init = NULL;
     p_hwcrhk_Finish = NULL;
@@ -606,12 +634,13 @@ static int hwcrhk_finish(ENGINE *e)
         goto err;
     }
     release_context(hwcrhk_context);
-    if (!DSO_free(hwcrhk_dso)) {
+    if (!lt_dlclose(hwcrhk_dso)) {
         HWCRHKerr(HWCRHK_F_HWCRHK_FINISH, HWCRHK_R_DSO_FAILURE);
         to_return = 0;
         goto err;
     }
  err:
+    lt_dlexit();
     BIO_free(logstream);
     hwcrhk_dso = NULL;
     p_hwcrhk_Init = NULL;

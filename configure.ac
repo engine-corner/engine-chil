@@ -7,6 +7,7 @@ dnl m4_include([m4/ax_check_openssl.m4])
 
 AM_INIT_AUTOMAKE
 LT_INIT([disable-static pic-only])
+LTDL_INIT
 
 AC_PROG_CC
 AC_LANG(C)
