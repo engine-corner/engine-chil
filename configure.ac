@@ -12,8 +12,6 @@ LTDL_INIT
 AC_PROG_CC
 AC_LANG(C)
 
-AC_CHECK_HEADERS([openssl/engine.h])
-
 AX_CHECK_OPENSSL(
   [have_openssl=yes],
   [AC_MSG_FAILURE([could not locate OpenSSL])]
@@ -24,6 +22,14 @@ if test "x$have_openssl" = "xyes"; then
   CFLAGS="$CFLAGS $OPENSSL_INCLUDES"
   LDFLAGS="$LDFLAGS $OPENSSL_LDFLAGS"
 fi
+
+AC_CHECK_HEADERS([openssl/engine.h])
+# Check out certain features we use that we know after specific to
+# OpenSSL 1.1.0 or later
+AC_CHECK_TYPE(CRYPTO_RWLOCK,[],
+              [AC_MSG_FAILURE([You need OpenSSL 1.1.0 or later])],
+              [#include <openssl/crypto.h>])
+AC_CHECK_FUNCS([RSA_PKCS1_OpenSSL RSA_meth_new DH_meth_new])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
