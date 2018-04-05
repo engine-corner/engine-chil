@@ -10,7 +10,7 @@ Requirements
 - GNU autoconf, automake, aclocal, libtool
 - GNU make
 - A C compiler
-- OpenSSL development files
+- OpenSSL development files, version 1.1.0 or newer.
 - Autoconf archive
 
 Quick instructions
@@ -31,9 +31,9 @@ Then, you configure, build and install as follows:
 `usr/local/lib/engines`.  You can change the prefix (default
 `usr/local` as follows:
 
-    ./Configure --prefix=/usr
+    ./configure --prefix=/usr
 
 ... or `libdir` itself:
 
-    ./Configure --libdir=/usr/lib
+    ./configure --libdir=/usr/lib
 
