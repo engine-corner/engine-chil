@@ -553,9 +553,9 @@ static int hwcrhk_init(ENGINE *e)
 
     if (strncmp(hwcrhk_name, "lib", 3) != 0) {
         /*
-	 * hwcrhk_libname is the same as hwcrhk_name, but with "lib" prefixed.
-	 * Make space for it
-	 */
+        * hwcrhk_libname is the same as hwcrhk_name, but with "lib" prefixed.
+        * Make space for it
+        */
         if ((hwcrhk_libname = malloc(strlen(hwcrhk_name) + 4)) == NULL) {
             HWCRHKerr(HWCRHK_F_HWCRHK_INIT, ERR_R_MALLOC_FAILURE);
             goto err;
@@ -957,13 +957,18 @@ static EVP_PKEY *hwcrhk_load_privkey(ENGINE *eng, const char *key_id,
     hwcrhk_mpi_free(e);
     hwcrhk_mpi_free(n);
 
+    e = NULL;
+    n = NULL;
+
     if (bn_e == NULL || bn_n == NULL) {
         HWCRHKerr(HWCRHK_F_HWCRHK_LOAD_PRIVKEY, ERR_R_MALLOC_FAILURE);
         goto err;
     }
 
     rtmp = RSA_new_method(eng);
-    if (rtmp == NULL) {
+    res = EVP_PKEY_new();
+
+    if (rtmp == NULL || res == NULL) {
         HWCRHKerr(HWCRHK_F_HWCRHK_LOAD_PRIVKEY, ERR_R_MALLOC_FAILURE);
         goto err;
     }
@@ -971,12 +976,6 @@ static EVP_PKEY *hwcrhk_load_privkey(ENGINE *eng, const char *key_id,
     RSA_set_ex_data(rtmp, hndidx_rsa, (char *)hptr);
     RSA_set0_key(rtmp, bn_n, bn_e, NULL);
     RSA_set_flags(rtmp, RSA_FLAG_EXT_PKEY);
-
-    res = EVP_PKEY_new();
-    if (res == NULL) {
-        HWCRHKerr(HWCRHK_F_HWCRHK_LOAD_PRIVKEY, ERR_R_MALLOC_FAILURE);
-        goto err;
-    }
 
     EVP_PKEY_assign_RSA(res, rtmp);
 #endif
@@ -989,8 +988,11 @@ static EVP_PKEY *hwcrhk_load_privkey(ENGINE *eng, const char *key_id,
 
  err:
 #ifndef OPENSSL_NO_RSA
+    BN_free(bn_e);
+    BN_free(bn_n);
     hwcrhk_mpi_free(e);
     hwcrhk_mpi_free(n);
+    EVP_PKEY_free(res);
     RSA_free(rtmp);
 #endif
     return NULL;
