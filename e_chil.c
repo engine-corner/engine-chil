@@ -76,6 +76,8 @@
 #endif
 #include <openssl/bn.h>
 
+#include "config.h"
+
 /*-
  * Attribution notice: nCipher have said several times that it's OK for
  * us to implement a general interface to their boxes, and recently declared
