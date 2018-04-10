@@ -31,5 +31,12 @@ AC_CHECK_TYPE(CRYPTO_RWLOCK,[],
               [#include <openssl/crypto.h>])
 AC_CHECK_FUNCS([RSA_PKCS1_OpenSSL RSA_meth_new DH_meth_new])
 
+AC_C_BIGENDIAN(
+  AC_DEFINE(B_ENDIAN, 1, [machine is big-endian]),
+  AC_DEFINE(L_ENDIAN, 1, [machine is little-endian]),
+  AC_MSG_ERROR(unknown endianess),
+  AC_MSG_ERROR(universial endianess not supported)
+)
+
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
