@@ -15,6 +15,7 @@
 /ltmain.sh
 /m4/
 /missing
+/libltdl/
 
 # Ignore all things produced by configure
 /.deps/
