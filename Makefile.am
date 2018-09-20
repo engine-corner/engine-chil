@@ -1,10 +1,12 @@
 AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4
 
+SUBDIRS = libltdl
+
 pkglib_LTLIBRARIES = chil.la
 
 chil_la_LDFLAGS = -module -avoid-version
-chil_la_LDLADD = $(LIBLTDL)
+chil_la_LIBADD = $(LIBLTDL)
 chil_la_CPPFLAGS = $(LTDLINCL)
 chil_la_DEPENDENCIES = $(LTDLDEPS)
 
