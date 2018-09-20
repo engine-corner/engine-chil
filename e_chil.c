@@ -565,9 +565,10 @@ static int hwcrhk_init(ENGINE *e)
     }
 
     /* Attempt to load libnfhwcrhk.so/nfhwcrhk.dll/whatever. */
-    if ((hwcrhk_libname != NULL
-         && (hwcrhk_dso = lt_dlopenext(hwcrhk_libname)) == NULL)
-        || (hwcrhk_dso = lt_dlopenext(hwcrhk_name)) == NULL) {
+    if (hwcrhk_libname != NULL) {
+        hwcrhk_dso = lt_dlopenext(hwcrhk_libname);
+    }
+    if (hwcrhk_dso == NULL && (hwcrhk_dso = lt_dlopenext(hwcrhk_name)) == NULL) {
         HWCRHKerr(HWCRHK_F_HWCRHK_INIT, HWCRHK_R_DSO_FAILURE);
         goto err;
     }
@@ -631,10 +632,11 @@ static int hwcrhk_init(ENGINE *e)
     return 1;
  err:
     free(hwcrhk_libname);
-    if (hwcrhk_dso != NULL)
+    if (hwcrhk_dso != NULL) {
         lt_dlclose(hwcrhk_dso);
+        hwcrhk_dso = NULL;
+    }
     lt_dlexit();
-    hwcrhk_dso = NULL;
     p_hwcrhk_Init = NULL;
     p_hwcrhk_Finish = NULL;
     p_hwcrhk_ModExp = NULL;
@@ -661,7 +663,7 @@ static int hwcrhk_finish(ENGINE *e)
     }
 
     release_context(hwcrhk_context);
-    if (!lt_dlclose(hwcrhk_dso)) {
+    if (lt_dlclose(hwcrhk_dso) != 0) {
         HWCRHKerr(HWCRHK_F_HWCRHK_FINISH, HWCRHK_R_DSO_FAILURE);
         goto err;
     }
